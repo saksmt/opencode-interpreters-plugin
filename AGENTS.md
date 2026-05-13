@@ -44,3 +44,5 @@ flake.nix         # Nix dev shell
 
 - **Do not modify `biome.jsonc` or `biome-all.jsonc`** without explicit user instruction. These files define the project's linting and formatting configuration and should only change when the user explicitly requests it.
 - **Read `CODE_STYLE.md` before writing code** and follow its rules. Read it when you need it, not at session start, to conserve context.
+- **Never stage or commit LLM-session artifacts** (plans, implementation instructions, context files, half-baked notes) to this repository. These are ephemeral; they are for the LLM session's consumption only and pollute the project history for human maintainers.
+  - Tip: Add `.ignoreme/` to your global gitignore (`~/.config/git/ignore`) to keep such artifacts out of all repos automatically.
