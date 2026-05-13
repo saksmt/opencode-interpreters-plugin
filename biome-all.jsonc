@@ -1,0 +1,14 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.4.13/schema.json",
+  "linter": {
+    "rules": {
+      "complexity": "error",
+      "correctness": "error",
+      "performance": "error",
+      "security": "error",
+      "a11y": "error",
+      "style": "error",
+      "suspicious": "error"
+    }
+  }
+}

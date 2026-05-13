@@ -1,0 +1,109 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.4.13/schema.json",
+  "extends": ["./biome-all.jsonc"],
+  "files": {
+    "includes": [
+      "src/**/*.ts",
+      "tests/**/*.ts",
+      "script/**/*.ts",
+      "package.json",
+      "tsconfig.json",
+      "biome.jsonc"
+    ]
+  },
+  "overrides": [
+    {
+      "includes": ["tests/**/*.ts"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noMagicNumbers": "off",
+            "useFilenamingConvention": "off"
+          }
+        }
+      }
+    }
+  ],
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "attributePosition": "auto",
+    "bracketSameLine": false,
+    "bracketSpacing": true,
+    "trailingNewline": true,
+    "lineEnding": "lf"
+  },
+  "linter": {
+    "enabled": true,
+    "domains": {
+      "types": "all"
+    },
+    "rules": {
+      "correctness": {
+        // temporary relaxation of rules
+        "noUnusedFunctionParameters": "off",
+        "noUnusedPrivateClassMembers": "off",
+        "noUnusedVariables": "off",
+        // permanent
+        "noNodejsModules": "off",
+        "noUnresolvedImports": "off",
+        "useQwikClasslist": "off",
+        "noQwikUseVisibleTask": "off",
+        "useQwikMethodUsage": "off",
+        "useQwikValidLexicalScope": "off"
+      },
+      "style": {
+        // temporary relaxation of rules
+        "useReadonlyClassProperties": "off",
+        // permanent
+        "noParameterProperties": "off",
+        "noInferrableTypes": "off",
+        "noUselessElse": "off",
+        "useNamingConvention": {
+          "level": "error",
+          "options": {
+            "strictCase": false
+          }
+        }
+      },
+      "performance": {
+        // permanent
+        "noNamespaceImport": "off"
+      },
+      "suspicious": {
+        // temporary relaxation of rules
+        "noEmptyBlockStatements": "off",
+        "useAwait": "off"
+      },
+      "security": {
+        // false positive most of the time
+        "noSecrets": "off"
+      },
+      "complexity": {
+        "noExcessiveLinesPerFunction": {
+          "level": "error",
+          "options": {
+            "maxLines": 200
+          }
+        }
+      },
+      "nursery": {
+        "noExcessiveLinesPerFile": {
+          "level": "error",
+          "options": {
+            // temporary, needs to be way lower
+            "maxLines": 500
+          }
+        }
+      }
+    }
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "double",
+      "semicolons": "always",
+      "indentWidth": 2
+    }
+  }
+}
