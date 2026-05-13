@@ -96,9 +96,7 @@ describe("TruncatedView", () => {
   describe("tail eviction", () => {
     it("drops oldest tail chunks when tail exceeds character budget", () => {
       const view = new TruncatedView(SMALL_LINE_LIMIT, 30);
-      view.feed(
-        "a\nb\nc\nd\ne\nf\ng\nh\ni\nj\nk\nl\nm\nn\no\np\nq\nr\ns\nt\nu\nv\nw\nx\ny\nz\n",
-      );
+      view.feed("a\nb\nc\nd\ne\nf\ng\nh\ni\nj\nk\nl\nm\nn\no\np\nq\nr\ns\nt\nu\nv\nw\nx\ny\nz\n");
       expect(view.truncated).toBe(true);
       const combined = view.renderedHead + view.renderedTail;
       expect(combined.length).toBeLessThanOrEqual(30);

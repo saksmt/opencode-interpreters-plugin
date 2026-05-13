@@ -19,6 +19,14 @@
           "style": {
             "noMagicNumbers": "off",
             "useFilenamingConvention": "off"
+          },
+          "complexity": {
+            "noExcessiveLinesPerFunction": {
+              "level": "warn",
+              "options": {
+                "maxLines": 200
+              }
+            }
           }
         }
       }
@@ -32,7 +40,8 @@
     "bracketSameLine": false,
     "bracketSpacing": true,
     "trailingNewline": true,
-    "lineEnding": "lf"
+    "lineEnding": "lf",
+    "lineWidth": 110
   },
   "linter": {
     "enabled": true,
@@ -84,7 +93,7 @@
         "noExcessiveLinesPerFunction": {
           "level": "error",
           "options": {
-            "maxLines": 200
+            "maxLines": 75
           }
         }
       },

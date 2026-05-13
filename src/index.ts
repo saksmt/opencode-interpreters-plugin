@@ -92,9 +92,7 @@ class DataReader {
     this.mainView = new TruncatedView(maxLines, maxCharacters);
   }
 
-  async consume(
-    onUpdate: (data: TruncatedContent) => Promise<void>,
-  ): Promise<TruncatedContent> {
+  async consume(onUpdate: (data: TruncatedContent) => Promise<void>): Promise<TruncatedContent> {
     return todo();
   }
 
@@ -171,16 +169,12 @@ class Interpreter {
     this.scriptLanguage = props.scriptLanguage;
     this.sandboxed = props.sandboxed ?? false;
     this.toolName = props.toolName ?? props.scriptLanguage;
-    this.os =
-      "os" in props && props.os !== undefined ? props.os : process.platform;
+    this.os = "os" in props && props.os !== undefined ? props.os : process.platform;
     this.extraDescriptions = props.extraDescriptions ?? {};
     this.maxLines = props.outputLimit?.lines ?? DEFAULT_MAX_LINES;
-    this.maxCharacters =
-      props.outputLimit?.characters ?? DEFAULT_MAX_CHARACTERS;
-    this.defaultTimeoutSeconds =
-      props.defaultTimeoutSeconds ?? DEFAULT_TIMEOUT_SECONDS;
-    this.exitGracePeriodSeconds =
-      props.exitGracePeriodSeconds ?? DEFAULT_EXIT_GRACE_PERIOD_SECONDS;
+    this.maxCharacters = props.outputLimit?.characters ?? DEFAULT_MAX_CHARACTERS;
+    this.defaultTimeoutSeconds = props.defaultTimeoutSeconds ?? DEFAULT_TIMEOUT_SECONDS;
+    this.exitGracePeriodSeconds = props.exitGracePeriodSeconds ?? DEFAULT_EXIT_GRACE_PERIOD_SECONDS;
     this.env = props.env ?? {};
   }
 
@@ -215,11 +209,7 @@ class Interpreter {
     });
 
     child.stdout.setEncoding("utf8");
-    const reader = new DataReader(
-      child.stdout,
-      this.maxLines,
-      this.maxCharacters,
-    );
+    const reader = new DataReader(child.stdout, this.maxLines, this.maxCharacters);
 
     const dataPromise = reader.consume(async (data) => {
       await Effect.runPromise(
@@ -235,12 +225,7 @@ class Interpreter {
     const finishedPromise = new Promise((resolve) => {
       child.once("close", () => resolve(true));
     });
-    const executionResult = await this.feedChild(
-      child,
-      context,
-      script,
-      timeoutSeconds,
-    );
+    const executionResult = await this.feedChild(child, context, script, timeoutSeconds);
 
     // biome-ignore lint/style/useDefaultSwitchClause: this should be covered by exhaustiveness check
     switch (executionResult.type) {
@@ -252,9 +237,7 @@ class Interpreter {
       case "timeout":
         child.kill();
         await Promise.race([
-          sleep(msFromSeconds(this.exitGracePeriodSeconds)).then(() =>
-            child.kill("SIGKILL"),
-          ),
+          sleep(msFromSeconds(this.exitGracePeriodSeconds)).then(() => child.kill("SIGKILL")),
           finishedPromise,
         ]);
         return todo();
@@ -313,18 +296,11 @@ class Interpreter {
     );
     const writeErrorPromise = writeErrorPromisePromise.promise;
 
-    const timeoutPromise: ResultPromise = sleep(
-      msFromSeconds(timeoutSeconds),
-    ).then(() => ({
+    const timeoutPromise: ResultPromise = sleep(msFromSeconds(timeoutSeconds)).then(() => ({
       type: "timeout",
     }));
 
-    return await Promise.race([
-      exitPromise,
-      abortedPromise,
-      writeErrorPromise,
-      timeoutPromise,
-    ]);
+    return await Promise.race([exitPromise, abortedPromise, writeErrorPromise, timeoutPromise]);
   }
 
   get pluginHooks(): Hooks {
@@ -334,12 +310,7 @@ class Interpreter {
           description: this.toolDescription,
           args: this.toolArgs,
           execute: async (args, context) =>
-            this.execute(
-              args.script,
-              args.description,
-              args.timeout ?? this.defaultTimeoutSeconds,
-              context,
-            ),
+            this.execute(args.script, args.description, args.timeout ?? this.defaultTimeoutSeconds, context),
         }),
       },
       "tool.execute.after": async (
@@ -375,10 +346,7 @@ class Interpreter {
         if (typeof output.metadata !== "object" || output.metadata === null) {
           return;
         }
-        if (
-          !("title" in output.metadata) ||
-          typeof output.metadata.title !== "string"
-        ) {
+        if (!("title" in output.metadata) || typeof output.metadata.title !== "string") {
           return;
         }
         // restore title
@@ -389,17 +357,13 @@ class Interpreter {
 
   get toolDescription(): string {
     return [
-      ...(this.extraDescriptions?.before
-        ? [[this.extraDescriptions.before]]
-        : []),
+      ...(this.extraDescriptions?.before ? [[this.extraDescriptions.before]] : []),
       [
         `Use this tool to run a non-interactive ${this.scriptLanguage} script.`,
         "Provide script text in the `script` argument",
       ],
       [],
-      [
-        "You MUST provide short 5-10 word description of what script does in the `description` argument",
-      ],
+      ["You MUST provide short 5-10 word description of what script does in the `description` argument"],
       [],
       [
         "If you need the script to be executed in directory other than the current project ",
@@ -419,14 +383,10 @@ class Interpreter {
         "   It is okay to use this tool for advanced use cases like: find all typescript files ",
         "with length greater than 1000 lines and with a line matching regex X, extract file names and thirty third lines of those.",
       ],
-      [
-        " - Interactive scripts - those requiring input in stdin; They WILL timeout.",
-      ],
+      [" - Interactive scripts - those requiring input in stdin; They WILL timeout."],
       ...[
         [],
-        ...(this.extraDescriptions?.beforeSandbox
-          ? [[this.extraDescriptions.beforeSandbox]]
-          : []),
+        ...(this.extraDescriptions?.beforeSandbox ? [[this.extraDescriptions.beforeSandbox]] : []),
         [
           "IMPORTANT: script will be executed in transparent sandboxed environment. ",
           "Only current project directory would be visible inside the script at the same path as outside.",
@@ -436,26 +396,18 @@ class Interpreter {
           "DO NOT create temporary files to pass data from script, pass everything you need to get from script to stdout. ",
           "Alternatively write to file inside current project directory tree, but avoid writing to files tracked in git for temporary pass-through files.",
         ],
-        ...(this.extraDescriptions?.afterSandbox
-          ? [[this.extraDescriptions.afterSandbox]]
-          : []),
+        ...(this.extraDescriptions?.afterSandbox ? [[this.extraDescriptions.afterSandbox]] : []),
       ].filter(() => this.sandboxed),
       ...[
         [],
-        ...(this.extraDescriptions?.beforeOS
-          ? [[this.extraDescriptions.beforeOS]]
-          : []),
+        ...(this.extraDescriptions?.beforeOS ? [[this.extraDescriptions.beforeOS]] : []),
         [`Script will run on ${this.os} operating system`],
-        ...(this.extraDescriptions?.afterOS
-          ? [[this.extraDescriptions.afterOS]]
-          : []),
+        ...(this.extraDescriptions?.afterOS ? [[this.extraDescriptions.afterOS]] : []),
       ].filter(() => this.os !== null),
       [
         ["Output format:"],
         [" - execution result:"],
-        [
-          "   - exit code (0-255) wrapped in `<exit>` tag when the script finished execution normally",
-        ],
+        ["   - exit code (0-255) wrapped in `<exit>` tag when the script finished execution normally"],
         [
           "   - `<exit>TIMEOUT</exit>` when execution timed out - read the results first and ",
           "then decide if you need to call this tool again with greater timeout value",
@@ -473,9 +425,7 @@ class Interpreter {
           "Use Grep and Read tools to read the full output from file in `<output.file>` if needed",
         ],
       ],
-      ...(this.extraDescriptions?.after
-        ? [[], [this.extraDescriptions.after]]
-        : []),
+      ...(this.extraDescriptions?.after ? [[], [this.extraDescriptions.after]] : []),
     ]
       .map((line) => line.join(""))
       .join("\n");
@@ -483,12 +433,8 @@ class Interpreter {
 
   get toolArgs() {
     return {
-      script: tool.schema
-        .string()
-        .describe(`Non-interactive script in ${this.scriptLanguage}`),
-      description: tool.schema
-        .string()
-        .describe("Short 5-10 word description of what script does"),
+      script: tool.schema.string().describe(`Non-interactive script in ${this.scriptLanguage}`),
+      description: tool.schema.string().describe("Short 5-10 word description of what script does"),
       timeout: tool.schema
         .number()
         .optional()
