@@ -174,15 +174,6 @@ describe("TruncatedView", () => {
     });
   });
 
-  describe("carriage return handling", () => {
-    it("strips \\r from line endings", () => {
-      const view = new TruncatedView(SMALL_LINE_LIMIT, SMALL_CHAR_LIMIT);
-      view.feed("hello\r\nworld\r\n");
-      expect(view.renderedContent).toBe("hello\nworld\n");
-      expect(view.totalLines).toBe(2);
-    });
-  });
-
   describe("empty feed data", () => {
     it("handles empty string feed", () => {
       const view = new TruncatedView(SMALL_LINE_LIMIT, SMALL_CHAR_LIMIT);

@@ -31,6 +31,10 @@ Within a class, members must appear in this order:
 - Use type annotations for function parameters and return types.
 
 ## Best Practices
+- **Aggressive encapsulation**: Do not expose anything that is not absolutely necessary. Use `private` for class members, avoid `export` on module-level symbols unless consumed externally.
 - Avoid comments unless they explain non-obvious reasoning. Do not add redundant "what" comments.
 - Use async/await over Promises.
 - Prefer const over let.
+
+## Line Width
+- Soft limit: 80 characters. Hard limit: 110 characters (enforced by Biome). Prefer breaking lines at the soft limit; the hard limit is a maximum.
