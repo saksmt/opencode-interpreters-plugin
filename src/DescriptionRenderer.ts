@@ -2,7 +2,7 @@ import type { InterpreterDefinition } from "./InterpreterDefinition";
 import * as defaultPluginPrompts from "./prompts";
 import { Template } from "./Template";
 
-type PromptConfig = Required<InterpreterDefinition>["prompt"];
+type PromptConfig = InterpreterDefinition["prompt"];
 type Prompts = Omit<PromptConfig, "extraParameters">;
 
 export interface RendererParameters {
@@ -27,7 +27,9 @@ export class DescriptionRenderer {
     defaultPrompts = defaultPluginPrompts,
   ) {
     this.extraParameters = configuredPrompts?.extraParameters ?? {};
-    const configuredWithoutExtra = { ...(configuredPrompts ?? {}) };
+    const configuredWithoutExtra: Prompts & { extraParameters?: Record<string, string> } = {
+      ...(configuredPrompts ?? {}),
+    };
     // biome-ignore lint/performance/noDelete: necessary
     delete configuredWithoutExtra?.extraParameters;
     this.prompts = {

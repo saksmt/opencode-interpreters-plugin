@@ -17,10 +17,6 @@ import { DescriptionRenderer } from "./DescriptionRenderer";
 import type { InterpreterDefinition } from "./InterpreterDefinition";
 import { TruncatedView } from "./TruncatedView";
 
-const DEFAULT_TIMEOUT_SECONDS = 600;
-const DEFAULT_EXIT_GRACE_PERIOD_SECONDS = 30;
-const DEFAULT_MAX_LINES = 700;
-const DEFAULT_MAX_CHARACTERS = 40_000;
 type TruncatedContent =
   | {
       truncated: true;
@@ -123,14 +119,14 @@ class Interpreter {
     this.interpreter = props.interpreter;
     this.scriptLanguage = props.scriptLanguage;
     this.toolName = props.toolName ?? props.scriptLanguage;
-    this.maxLines = props.outputLimit?.lines ?? DEFAULT_MAX_LINES;
-    this.maxCharacters = props.outputLimit?.characters ?? DEFAULT_MAX_CHARACTERS;
-    this.defaultTimeoutSeconds = props.defaultTimeoutSeconds ?? DEFAULT_TIMEOUT_SECONDS;
-    this.exitGracePeriodSeconds = props.exitGracePeriodSeconds ?? DEFAULT_EXIT_GRACE_PERIOD_SECONDS;
-    this.env = props.env ?? {};
+    this.maxLines = props.outputLimit.lines;
+    this.maxCharacters = props.outputLimit.characters;
+    this.defaultTimeoutSeconds = props.defaultTimeoutSeconds;
+    this.exitGracePeriodSeconds = props.exitGracePeriodSeconds;
+    this.env = props.env;
 
     this.descriptionRenderer = new DescriptionRenderer(props.prompt, {
-      sandboxed: props.sandboxed ?? false,
+      sandboxed: props.sandboxed,
       scriptLanguage: props.scriptLanguage,
       os: "os" in props && props.os !== undefined ? props.os : process.platform,
       maxLines: this.maxLines,

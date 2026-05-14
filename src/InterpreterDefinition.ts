@@ -12,7 +12,6 @@ export const InterpreterDefinition = zod.object({
   scriptLanguage: zod.string().describe("Name of the script language"),
   sandboxed: zod
     .boolean()
-    .optional()
     .default(false)
     .describe(
       [
@@ -41,21 +40,19 @@ export const InterpreterDefinition = zod.object({
       lines: zod
         .number()
         .check(zod.positive())
-        .optional()
         .default(DEFAULT_MAX_LINES)
         .describe(`Maximum number of lines in output, default is ${DEFAULT_MAX_LINES}`),
       characters: zod
         .number()
         .check(zod.positive())
-        .optional()
         .default(DEFAULT_MAX_CHARACTERS)
         .describe(`Maximum number of characters in output, default is ${DEFAULT_MAX_CHARACTERS}`),
     })
-    .optional()
+    .prefault({})
     .describe([""].join("\n")),
   env: zod
     .record(zod.string(), zod.string())
-    .optional()
+    .default({})
     .describe(
       [
         "Environment variables to pass to the interpreter",
@@ -65,7 +62,6 @@ export const InterpreterDefinition = zod.object({
   defaultTimeoutSeconds: zod
     .number()
     .check(zod.positive())
-    .optional()
     .default(DEFAULT_TIMEOUT_SECONDS)
     .describe(
       `Default timeout for tool execution in seconds, in not specified, defaults to ${DEFAULT_TIMEOUT_SECONDS} seconds`,
@@ -73,7 +69,6 @@ export const InterpreterDefinition = zod.object({
   exitGracePeriodSeconds: zod
     .number()
     .check(zod.positive())
-    .optional()
     .default(DEFAULT_EXIT_GRACE_PERIOD_SECONDS)
     .describe(
       `Grace period after sending SIGTERM to the process before sending SIGKILL, default is ${DEFAULT_EXIT_GRACE_PERIOD_SECONDS} seconds`,
@@ -108,10 +103,10 @@ export const InterpreterDefinition = zod.object({
       //
       extraParameters: zod
         .record(zod.string(), zod.string())
-        .optional()
+        .default({})
         .describe("Extra template parameters"),
     })
-    .optional()
+    .prefault({})
     .describe("Tool description configuration"),
 });
 export type InterpreterDefinition = zod.infer<typeof InterpreterDefinition>;
