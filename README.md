@@ -59,7 +59,7 @@ The plugin accepts two configuration keys:
 
 When output exceeds either limit, the LLM never sees the full content at once. Instead it receives the head and tail of the output plus a path to a file with the complete output. This prevents token waste while still allowing the LLM to use Grep or Read tools on the full output if needed.
 
-## Python Example
+## Example
 
 ```json
 {

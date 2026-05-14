@@ -60,7 +60,8 @@
         "useQwikClasslist": "off",
         "noQwikUseVisibleTask": "off",
         "useQwikMethodUsage": "off",
-        "useQwikValidLexicalScope": "off"
+        "useQwikValidLexicalScope": "off",
+        "useImportExtensions": "off"
       },
       "style": {
         // temporary relaxation of rules
@@ -78,7 +79,9 @@
       },
       "performance": {
         // permanent
-        "noNamespaceImport": "off"
+        "noNamespaceImport": "off",
+        // very useful feature for making facades
+        "noBarrelFile": "off"
       },
       "suspicious": {
         // temporary relaxation of rules
