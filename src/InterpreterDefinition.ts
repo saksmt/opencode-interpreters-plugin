@@ -9,6 +9,7 @@ export const InterpreterDefinition = zod.object({
   interpreter: zod
     .string()
     .describe('Interpreter command to use for running scripts, essentially shebang without the "#!" part'),
+  interpreterArgs: zod.array(zod.string()).default([]).describe("Arguments to pass to the interpreter"),
   scriptLanguage: zod.string().describe("Name of the script language"),
   sandboxed: zod
     .boolean()

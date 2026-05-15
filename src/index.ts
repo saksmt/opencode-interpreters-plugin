@@ -1,6 +1,4 @@
-import { type ChildProcessByStdio, spawn } from "node:child_process";
 import process from "node:process";
-import type { Readable, Writable } from "node:stream";
 import {
   type Hooks,
   type Plugin,
@@ -12,6 +10,8 @@ import {
 } from "@opencode-ai/plugin";
 // biome-ignore lint/correctness/noUndeclaredDependencies: would not be needed when it is gone
 import { Effect } from "effect";
+import { ProcessBuilder } from "@/process";
+import { todo } from "@/utils.ts";
 import { Config } from "./Config";
 import { DescriptionRenderer } from "./DescriptionRenderer";
 import type { InterpreterDefinition } from "./InterpreterDefinition";
@@ -31,29 +31,6 @@ type TruncatedContent =
       truncated: false;
     };
 
-class DataReader {
-  private readonly allChunks: string[] = [];
-  private readonly head: string[] = [];
-  private readonly tail: string[] = [];
-  private readonly mainView: TruncatedView;
-
-  constructor(
-    private readonly iterable: AsyncIterable<string>,
-    private readonly maxLines: number,
-    private readonly maxCharacters: number,
-  ) {
-    this.mainView = new TruncatedView(maxLines, maxCharacters);
-  }
-
-  async consume(onUpdate: (data: TruncatedContent) => Promise<void>): Promise<TruncatedContent> {
-    return todo();
-  }
-
-  get currentData(): TruncatedContent {
-    return todo();
-  }
-}
-
 function formatPreview(data: TruncatedContent) {
   if (data.truncated) {
     return `
@@ -65,14 +42,6 @@ function formatPreview(data: TruncatedContent) {
   } else {
     return data.content;
   }
-}
-
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-function todo(): never {
-  throw new Error("Not implemented");
 }
 
 function msFromSeconds(seconds: number): number {
@@ -102,28 +71,27 @@ type ExecutionResult =
 type ResultPromise = Promise<ExecutionResult>;
 
 class Interpreter {
-  private readonly interpreter: string;
   private readonly scriptLanguage: string;
   private readonly toolName: string;
   private readonly maxLines: number;
   private readonly maxCharacters: number;
-  private readonly env: Record<string, string>;
   private readonly defaultTimeoutSeconds: number;
-  private readonly exitGracePeriodSeconds: number;
   private readonly descriptionRenderer: DescriptionRenderer;
+  private readonly processBuilder: ProcessBuilder;
 
   constructor(
     private readonly ctx: PluginInput,
     props: InterpreterDefinition,
   ) {
-    this.interpreter = props.interpreter;
     this.scriptLanguage = props.scriptLanguage;
     this.toolName = props.toolName ?? props.scriptLanguage;
     this.maxLines = props.outputLimit.lines;
     this.maxCharacters = props.outputLimit.characters;
     this.defaultTimeoutSeconds = props.defaultTimeoutSeconds;
-    this.exitGracePeriodSeconds = props.exitGracePeriodSeconds;
-    this.env = props.env;
+    this.processBuilder = ProcessBuilder(props.interpreter, props.interpreterArgs)
+      .withEnv(props.env)
+      .shutdownTimeout(props.exitGracePeriodSeconds)
+      .bindStdin(true);
 
     this.descriptionRenderer = new DescriptionRenderer(props.prompt, {
       sandboxed: props.sandboxed,
@@ -132,14 +100,16 @@ class Interpreter {
       maxLines: this.maxLines,
       maxCharacters: this.maxCharacters,
       defaultTimeoutSeconds: this.defaultTimeoutSeconds,
-      exitGracePeriodSeconds: this.exitGracePeriodSeconds,
+      exitGracePeriodSeconds: props.exitGracePeriodSeconds,
     });
   }
 
+  // biome-ignore lint/complexity/useMaxParams: does not make much sense to restructure tool args, nor passing raw args
   async execute(
     script: string,
     description: string,
     timeoutSeconds: number,
+    capture: "stdout" | "stderr" | "both",
     context: ToolContext,
   ): Promise<
     ToolResult & {
@@ -160,30 +130,22 @@ class Interpreter {
       }) as unknown as Effect.Effect<void>,
     );
 
-    const child = spawn(this.interpreter, {
-      env: this.env,
-      cwd: this.ctx.directory,
-      stdio: ["pipe", "pipe", "ignore"],
-    });
+    const child = this.processBuilder
+      .withPwd(this.ctx.directory)
+      .capture(capture === "both" ? ["stdout", "stderr"] : [capture])
+      .timeout(msFromSeconds(timeoutSeconds))
+      .abortOn(context.abort)
+      .buildAndStart();
 
-    child.stdout.setEncoding("utf8");
-    const reader = new DataReader(child.stdout, this.maxLines, this.maxCharacters);
+    child.unref();
+    child.write(script, true);
 
-    const dataPromise = reader.consume(async (data) => {
-      await Effect.runPromise(
-        context.metadata({
-          metadata: {
-            output: formatPreview(data),
-            description,
-          },
-        }) as unknown as Effect.Effect<void>,
-      );
-    });
-
-    const finishedPromise = new Promise((resolve) => {
-      child.once("close", () => resolve(true));
-    });
-    const executionResult = await this.feedChild(child, context, script, timeoutSeconds);
+    const executionResult = await child.processFinished();
+    // todo: separate config setting?
+    // todo: get terminal size from opencode?
+    const termSize = 80;
+    const userPreview = new TruncatedView(this.maxLines, this.maxCharacters, termSize);
+    const toolOutput = new TruncatedView(this.maxLines, this.maxCharacters);
 
     // biome-ignore lint/style/useDefaultSwitchClause: this should be covered by exhaustiveness check
     switch (executionResult.type) {
@@ -193,72 +155,14 @@ class Interpreter {
         // just forwarding it, following same logic as in opencode's shell tool
         throw executionResult.error;
       case "timeout":
-        child.kill();
-        await Promise.race([
-          sleep(msFromSeconds(this.exitGracePeriodSeconds)).then(() => child.kill("SIGKILL")),
-          finishedPromise,
-        ]);
         return todo();
-      case "abort":
+      case "aborted":
         // would be awesome to ask user why here, but it is impossible
         return todo();
       case "writeError":
         // just forwarding it, following same logic as in opencode's shell tool
         throw executionResult.error;
     }
-  }
-
-  private async feedChild(
-    child: ChildProcessByStdio<Writable, Readable, null>,
-    context: ToolContext,
-    script: string,
-    timeoutSeconds: number,
-  ): ResultPromise {
-    const exitPromise: ResultPromise = new Promise((resolve) => {
-      child.on("exit", (code) =>
-        resolve({
-          type: "exit",
-          code: code ?? null,
-        }),
-      );
-      child.on("error", (e) =>
-        resolve({
-          type: "error",
-          error: e ?? null,
-        }),
-      );
-    });
-
-    const abortedPromise: ResultPromise = new Promise((resolve, reject) => {
-      context.abort.onabort = () =>
-        resolve({
-          type: "abort",
-        });
-    });
-
-    const writeErrorPromisePromise: {
-      promise: ResultPromise;
-    } = await new Promise((resolve) =>
-      child.stdin.write(script, "utf8", (err) => {
-        resolve({
-          promise: new Promise((resolveErr) => {
-            if (err) {
-              resolveErr({
-                type: "writeError",
-                error: err,
-              });
-            }
-          }),
-        });
-      }),
-    );
-    const writeErrorPromise = writeErrorPromisePromise.promise;
-
-    const timeoutPromise: ResultPromise = sleep(msFromSeconds(timeoutSeconds)).then(() => ({
-      type: "timeout",
-    }));
-
-    return await Promise.race([exitPromise, abortedPromise, writeErrorPromise, timeoutPromise]);
   }
 
   get toolDefinition(): ToolDefinition {
@@ -269,15 +173,15 @@ class Interpreter {
         description: tool.schema.string().describe("Short 5-10 word description of what script does"),
         timeout: tool.schema
           .number()
-          .optional()
+          .default(this.defaultTimeoutSeconds)
           .describe("Script execution timeout in seconds, default is 300"),
         capture: tool.schema
           .enum(["stdout", "stderr", "both"])
-          .optional()
+          .default("stdout")
           .describe("Output capture mode, default is both"),
       },
       execute: async (args, context) =>
-        this.execute(args.script, args.description, args.timeout ?? this.defaultTimeoutSeconds, context),
+        this.execute(args.script, args.description, args.timeout, args.capture, context),
     });
   }
 

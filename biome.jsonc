@@ -30,6 +30,22 @@
           }
         }
       }
+    },
+    {
+      "includes": ["src/utils.ts"],
+      "linter": {
+        "rules": {
+          "nursery": {
+            "noExcessiveLinesPerFile": {
+              "level": "error",
+              "options": {
+                // removing the temptation to grow utils...
+                "maxLines": 100
+              }
+            }
+          }
+        }
+      }
     }
   ],
   "formatter": {
@@ -75,7 +91,9 @@
           "options": {
             "strictCase": false
           }
-        }
+        },
+        // good one, but breaks top-to-bottom reading where it was otherwise possible
+        "useExportsLast": "off"
       },
       "performance": {
         // permanent
@@ -86,7 +104,14 @@
       "suspicious": {
         // temporary relaxation of rules
         "noEmptyBlockStatements": "off",
-        "useAwait": "off"
+        "useAwait": "off",
+        // permanent
+        "noImportCycles": {
+          "level": "error",
+          "options": {
+            "ignoreTypes": true
+          }
+        }
       },
       "security": {
         // false positive most of the time
@@ -104,8 +129,7 @@
         "noExcessiveLinesPerFile": {
           "level": "error",
           "options": {
-            // temporary, needs to be way lower
-            "maxLines": 500
+            "maxLines": 350
           }
         }
       }
