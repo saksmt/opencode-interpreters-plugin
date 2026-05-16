@@ -7,8 +7,9 @@ import {
 } from "node:child_process";
 import { platform } from "node:os";
 import process from "node:process";
+import { setTimeout } from "node:timers/promises";
 import type { Process, ProcessResult, ProcessStartupSettings } from "@/process";
-import { forever, sleep, voidPromise } from "@/utils";
+import { notFulfilled, voidPromise } from "@/utils";
 
 export class NodeJsSpawnProcess implements Process {
   private readonly finished: Promise<void>;
@@ -44,7 +45,7 @@ export class NodeJsSpawnProcess implements Process {
         ? []
         : [
             this.exclusiveFinalizer(
-              sleep(this.settings.timeout, {
+              setTimeout(this.settings.timeout, {
                 type: "timeout",
               }),
             ),
@@ -116,7 +117,7 @@ export class NodeJsSpawnProcess implements Process {
       this.child.kill(killWith);
       return Promise.race([
         this.finished,
-        sleep(this.settings.shutdownGracePeriod)
+        setTimeout(this.settings.shutdownGracePeriod)
           .then(() => this.killGrandChildren("SIGKILL"))
           .then(() => this.child.kill("SIGKILL"))
           .then(() => this.finished),
@@ -125,7 +126,7 @@ export class NodeJsSpawnProcess implements Process {
       this.child.kill(killWith);
       return Promise.race([
         this.finished,
-        sleep(this.settings.shutdownGracePeriod)
+        setTimeout(this.settings.shutdownGracePeriod)
           .then(() => this.child.kill("SIGKILL"))
           .then(() => this.finished),
       ]);
@@ -194,7 +195,7 @@ export class NodeJsSpawnProcess implements Process {
   ): Promise<ProcessResult> {
     const resultValue = "then" in result ? await result : await new Promise(result);
     if (this.finalizing) {
-      await forever();
+      await notFulfilled();
     }
     this.finalizing = true;
     if (kill) {

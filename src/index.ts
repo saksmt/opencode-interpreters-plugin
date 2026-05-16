@@ -11,7 +11,8 @@ import {
 // biome-ignore lint/correctness/noUndeclaredDependencies: would not be needed when it is gone
 import { Effect } from "effect";
 import { ProcessBuilder } from "@/process";
-import { todo } from "@/utils.ts";
+import { SessionFs } from "@/SessionFs.ts";
+import { fireAndForget, Millis, todo } from "@/utils.ts";
 import { Config } from "./Config";
 import { DescriptionRenderer } from "./DescriptionRenderer";
 import type { InterpreterDefinition } from "./InterpreterDefinition";
@@ -43,32 +44,6 @@ function formatPreview(data: TruncatedContent) {
     return data.content;
   }
 }
-
-function msFromSeconds(seconds: number): number {
-  // biome-ignore lint/style/noMagicNumbers: trivial
-  return seconds * 1000;
-}
-
-type ExecutionResult =
-  | {
-      type: "exit";
-      code: number | null;
-    }
-  | {
-      type: "error";
-      error: Error | null;
-    }
-  | {
-      type: "abort";
-    }
-  | {
-      type: "writeError";
-      error: Error | null;
-    }
-  | {
-      type: "timeout";
-    };
-type ResultPromise = Promise<ExecutionResult>;
 
 class Interpreter {
   private readonly scriptLanguage: string;
@@ -104,7 +79,7 @@ class Interpreter {
     });
   }
 
-  // biome-ignore lint/complexity/useMaxParams: does not make much sense to restructure tool args, nor passing raw args
+  // biome-ignore lint/complexity/useMaxParams: does not make much sense to restructure tool args nor passing raw args
   async execute(
     script: string,
     description: string,
@@ -133,7 +108,7 @@ class Interpreter {
     const child = this.processBuilder
       .withPwd(this.ctx.directory)
       .capture(capture === "both" ? ["stdout", "stderr"] : [capture])
-      .timeout(msFromSeconds(timeoutSeconds))
+      .timeout(Millis.fromSeconds(timeoutSeconds))
       .abortOn(context.abort)
       .buildAndStart();
 
@@ -250,10 +225,14 @@ class Interpreter {
 export const OpencodeShellToolPlugin: Plugin = async (ctx: PluginInput, config?: Record<string, unknown>) => {
   let hooks: Hooks = {};
 
+  const sessionFs = await SessionFs.create(ctx.client);
+
+  fireAndForget(() => sessionFs.startBookkeeping());
+  hooks.event = ({ event }) => sessionFs.opencodeEventListener(event);
+
   const interpreters = await Config.load(ctx, config ?? {});
   for (const interpreter of interpreters) {
-    // biome-ignore lint/performance/noAwaitInLoops: does not matter here and it requires sequential execution
-    hooks = await new Interpreter(ctx, interpreter).register(hooks);
+    hooks = new Interpreter(ctx, interpreter).register(hooks);
   }
 
   return hooks;
