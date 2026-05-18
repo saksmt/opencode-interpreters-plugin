@@ -40,6 +40,12 @@ CODE_STYLE.md     # Code style guide (read before writing code)
 flake.nix         # Nix dev shell
 ```
 
+## Conventions
+
+- **Test files**: `tests/*.test.ts` mirroring `src/` structure. Use relative `../src/` imports (not `@/` aliases) in test files.
+- **Path aliases**: `@/` maps to `./src/` via tsconfig `paths`. Works in source files and Bun test runner.
+- **Import style**: `import type { Foo }` must be a **separate statement** from value imports. Never use inline `import { type Foo }`.
+
 ## Agent Rules
 
 - **Do not modify `biome.jsonc` or `biome-all.jsonc`** without explicit user instruction. These files define the project's linting and formatting configuration and should only change when the user explicitly requests it.

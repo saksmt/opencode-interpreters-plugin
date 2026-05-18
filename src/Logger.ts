@@ -8,6 +8,11 @@ export interface Logger {
   error(message: string, ctx?: Record<string, unknown>): Promise<void>;
   childLogger(name: string): Logger;
 }
+export const Logger = {
+  forPluginContext(ctx: PluginInput, service: string): Logger {
+    return new PluginLogger(ctx, service);
+  },
+};
 
 class PluginLogger implements Logger {
   constructor(
@@ -71,41 +76,3 @@ class PluginLogger implements Logger {
     return new PluginLogger(this.ctx, `${this.service}.${name}`);
   }
 }
-
-export class ConsoleLogger implements Logger {
-  constructor(private readonly service: string) {}
-
-  debug(message: string, ctx: Record<string, unknown> = {}): Promise<void> {
-    // biome-ignore lint/suspicious/noConsole: Console-based logger for test use
-    console.debug(`[${this.service}]`, message, ctx);
-    return voidPromise;
-  }
-
-  info(message: string, ctx: Record<string, unknown> = {}): Promise<void> {
-    // biome-ignore lint/suspicious/noConsole: Console-based logger for test use
-    console.info(`[${this.service}]`, message, ctx);
-    return voidPromise;
-  }
-
-  warn(message: string, ctx: Record<string, unknown> = {}): Promise<void> {
-    // biome-ignore lint/suspicious/noConsole: Console-based logger for test use
-    console.warn(`[${this.service}]`, message, ctx);
-    return voidPromise;
-  }
-
-  error(message: string, ctx: Record<string, unknown> = {}): Promise<void> {
-    // biome-ignore lint/suspicious/noConsole: Console-based logger for test use
-    console.error(`[${this.service}]`, message, ctx);
-    return voidPromise;
-  }
-
-  childLogger(name: string): Logger {
-    return new ConsoleLogger(`${this.service}.${name}`);
-  }
-}
-
-export const Logger = {
-  forPluginContext(ctx: PluginInput, service: string): Logger {
-    return new PluginLogger(ctx, service);
-  },
-};

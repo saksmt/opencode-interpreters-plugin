@@ -4,10 +4,11 @@ import { open as fsOpen, mkdir } from "node:fs/promises";
 import { platform, tmpdir } from "node:os";
 import { join } from "node:path";
 import { InterpreterToolExecutor } from "../src/InterpreterToolExecutor.ts";
-import { ConsoleLogger } from "../src/Logger.ts";
+import type { Logger } from "../src/Logger.ts";
 import type { PromisifiedToolContext } from "../src/opencode-types.ts";
 import { ProcessBuilder } from "../src/process";
 import type { SessionFs } from "../src/SessionFs.ts";
+import { voidPromise } from "../src/utils.ts";
 
 const DEFAULT_MAX_LINES = 700;
 const DEFAULT_MAX_CHARACTERS = 40_000;
@@ -33,8 +34,6 @@ class FakeSessionFs implements SessionFs {
   }
 }
 
-const logger = new ConsoleLogger("test");
-
 function noopContext(): PromisifiedToolContext {
   return {
     sessionID: "test-session",
@@ -50,6 +49,53 @@ function noopContext(): PromisifiedToolContext {
   };
 }
 
+class BufferedLogger implements Logger {
+  private readonly entries: { level: string; message: string; ctx: Record<string, unknown> }[] = [];
+
+  debug(message: string, ctx: Record<string, unknown> = {}): Promise<void> {
+    this.entries.push({ level: "debug", message, ctx });
+    return voidPromise;
+  }
+  info(message: string, ctx: Record<string, unknown> = {}): Promise<void> {
+    this.entries.push({ level: "info", message, ctx });
+    return voidPromise;
+  }
+  warn(message: string, ctx: Record<string, unknown> = {}): Promise<void> {
+    this.entries.push({ level: "warn", message, ctx });
+    return voidPromise;
+  }
+  error(message: string, ctx: Record<string, unknown> = {}): Promise<void> {
+    this.entries.push({ level: "error", message, ctx });
+    return voidPromise;
+  }
+  childLogger(): Logger {
+    return this;
+  }
+
+  flush(): void {
+    for (const e of this.entries) {
+      // biome-ignore lint/suspicious/noConsole: flushed only on test failure
+      console.log(`[${e.level}] ${e.message}`, JSON.stringify(e.ctx));
+    }
+  }
+}
+
+function withLogs(name: string, fn: (logger: Logger) => Promise<void>): () => Promise<void> {
+  return async () => {
+    const logger = new BufferedLogger();
+    try {
+      await fn(logger);
+    } catch (e) {
+      // biome-ignore lint/suspicious/noConsole: flushed only on test failure
+      console.log(`--- logs for "${name}" ---`);
+      logger.flush();
+      // biome-ignore lint/suspicious/noConsole: flushed only on test failure
+      console.log(`--- end logs for "${name}" ---`);
+      throw e;
+    }
+  };
+}
+
 describe("InterpreterToolExecutor", () => {
   if (platform() !== "linux") {
     return;
@@ -57,39 +103,45 @@ describe("InterpreterToolExecutor", () => {
 
   const sessionFs = new FakeSessionFs();
 
-  it("returns full output when content fits within limits", async () => {
-    const executor = new InterpreterToolExecutor(
-      logger,
-      sessionFs,
-      DEFAULT_MAX_LINES,
-      DEFAULT_MAX_CHARACTERS,
-      ProcessBuilder("cat").bindStdin(true),
-    );
+  it(
+    "returns full output when content fits within limits",
+    withLogs("fits within limits", async (logger) => {
+      const executor = new InterpreterToolExecutor(
+        logger,
+        sessionFs,
+        DEFAULT_MAX_LINES,
+        DEFAULT_MAX_CHARACTERS,
+        ProcessBuilder("cat").bindStdin(true),
+      );
 
-    const script = "hello world";
-    const result = await executor.execute(script, "test-description", 10, "stdout", noopContext());
+      const script = "hello world";
+      const result = await executor.execute(script, "test-description", 10, "stdout", noopContext());
 
-    expect(result.metadata.truncated).toBe(false);
-    expect(result.metadata.exit).toBe(0);
-    expect(result.output).toContain(script);
-  });
+      expect(result.metadata.truncated).toBe(false);
+      expect(result.metadata.exit).toBe(0);
+      expect(result.output).toContain(script);
+    }),
+  );
 
-  it("creates output file when content exceeds limits", async () => {
-    const smallMaxLines = 5;
-    const executor = new InterpreterToolExecutor(
-      logger,
-      sessionFs,
-      smallMaxLines,
-      1000,
-      ProcessBuilder("cat").bindStdin(true),
-    );
+  it(
+    "creates output file when content exceeds limits",
+    withLogs("exceeds limits", async (logger) => {
+      const smallMaxLines = 5;
+      const executor = new InterpreterToolExecutor(
+        logger,
+        sessionFs,
+        smallMaxLines,
+        1000,
+        ProcessBuilder("cat").bindStdin(true),
+      );
 
-    const lines = Array.from({ length: 50 }, (_, i) => `line ${i}: some test content`).join("\n");
+      const lines = Array.from({ length: 50 }, (_, i) => `line ${i}: some test content`).join("\n");
 
-    const result = await executor.execute(lines, "test-overflow", 10, "stdout", noopContext());
+      const result = await executor.execute(lines, "test-overflow", 10, "stdout", noopContext());
 
-    expect(result.metadata.truncated).toBe(true);
-    expect(result.metadata.exit).toBe(0);
-    expect(result.metadata.outputPath).toBeDefined();
-  });
+      expect(result.metadata.truncated).toBe(true);
+      expect(result.metadata.exit).toBe(0);
+      expect(result.metadata.outputPath).toBeDefined();
+    }),
+  );
 });
