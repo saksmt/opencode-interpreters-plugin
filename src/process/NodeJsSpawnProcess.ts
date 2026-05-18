@@ -76,6 +76,8 @@ export class NodeJsSpawnProcess implements Process {
       stdio: stdioTuple,
       cwd: settings.pwd ?? undefined,
       shell: capturesBoth,
+      // biome-ignore lint/style/noProcessEnv: Need to inherit parent env for child process
+      env: { ...process.env, ...settings.env },
     } satisfies SpawnOptionsWithStdioTuple<
       StdioPipe | StdioNull,
       StdioPipe | StdioNull,
@@ -137,7 +139,11 @@ export class NodeJsSpawnProcess implements Process {
 
   private killGrandChildren(signal?: NodeJS.Signals) {
     if (["linux", "android"].includes(platform()) && this.child.pid) {
-      process.kill(-this.child.pid, signal);
+      try {
+        process.kill(-this.child.pid, signal);
+      } catch {
+        // process group may not exist (e.g. after timeout or abort)
+      }
     }
   }
 
