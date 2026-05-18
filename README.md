@@ -1,5 +1,7 @@
 # opencode-interpreters-plugin
 
+[![build](https://github.com/saksmt/opencode-interpreters-plugin/workflows/build/badge.svg)](https://github.com/saksmt/opencode-interpreters-plugin/actions?query=workflow%3Abuild+branch%3Amaster) [![npm](https://img.shields.io/npm/v/opencode-interpreters-plugin)](https://www.npmjs.com/package/opencode-interpreters-plugin)
+
 A plugin for [opencode](https://opencode.ai) that exposes any interpreter (anything that reads scripts from stdin) as a tool. Can be used to override the default shell tool, enabling users to hook in sandboxed ([bwrap](https://github.com/containers/bubblewrap), seatbelt) and/or enriched ([nix](https://nixos.org), [direnv](https://direnv.net), devcontainers) environments without relying on tree-sitter-based shell parsing for security.
 
 ## Quick Start
