@@ -65,7 +65,7 @@ export const InterpreterDefinition = zod.object({
     .check(zod.positive())
     .default(DEFAULT_TIMEOUT_SECONDS)
     .describe(
-      `Default timeout for tool execution in seconds, in not specified, defaults to ${DEFAULT_TIMEOUT_SECONDS} seconds`,
+      `Default timeout for tool execution in seconds, if not specified, defaults to ${DEFAULT_TIMEOUT_SECONDS} seconds`,
     ),
   exitGracePeriodSeconds: zod
     .number()

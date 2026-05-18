@@ -38,7 +38,7 @@ Add the plugin name to your `opencode.jsonc` under the `plugin` key. To pin a ve
 ```json
 {
   "plugin": [
-    ["opencode-interpreters-plugin@1.0.0", {
+    ["opencode-interpreters-plugin@0.1.0", {
       // config
     }]
   ]
@@ -51,19 +51,38 @@ The plugin accepts an object from interpreter name to it's configuration:
 
 ### Configuration Properties
 
-| Property                 | Default         | Description                                                                                                                     |
-|--------------------------|-----------------|---------------------------------------------------------------------------------------------------------------------------------|
-| `interpreter`            | —               | Interpreter command (shebang without `#!`), e.g., `python3`, `node`, `bash`.                                                    |
-| `interpreterArgs`        | `[]`            | Additional arguments passed to the interpreter.                                                                                 |
-| `env`                    | `{}`            | Environment variables passed to the interpreter process.                                                                        |
-| `sandboxed`              | `false`         | Whether the interpreter runs inside a sandbox. See Security section.                                                            |
-| `prompt`                 | `{}`            | Additional text injected into the tool description (`before`, `after`, `beforeSandbox`, `afterSandbox`, `beforeOS`, `afterOS`). |
-| `toolName`               | script language | Tool name exposed to opencode.                                                                                                  |
-| `os`                     | host OS         | OS name shown in the tool description. Set to `null` to omit.                                                                   |
-| `outputLimit.lines`      | `700`           | Maximum output lines before truncation (head/tail with full output in a file).                                                  |
-| `outputLimit.characters` | `40000`         | Maximum output characters before truncation (head/tail with full output in a file).                                             |
-| `defaultTimeoutSeconds`  | `600`           | Default execution timeout in seconds.                                                                                           |
-| `exitGracePeriodSeconds` | `30`            | Grace period in seconds between SIGTERM and SIGKILL on timeout.                                                                 |
+| Property                 | Default         | Description                                                                                                                                                                                                                                                                                     |
+|--------------------------|-----------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `interpreter`            | —               | Interpreter command (shebang without `#!`), e.g., `python3`, `node`, `bash`.                                                                                                                                                                                                                    |
+| `interpreterArgs`        | `[]`            | Additional arguments passed to the interpreter.                                                                                                                                                                                                                                                 |
+| `env`                    | `{}`            | Environment variables passed to the interpreter process.                                                                                                                                                                                                                                        |
+| `scriptLanguage`         | interpreter key | Name of the script language (e.g., `bash`, `python`). Defaults to the interpreter key name.                                                                                                                                                                                                     |
+| `sandboxed`              | `false`         | Whether the interpreter runs inside a sandbox. See Security section.                                                                                                                                                                                                                            |
+| `prompt`                 | `{}`            | See "Prompt Template" section below. Sub-fields: `before`, `main`, `after`, `prelude`, `beforeRules`, `rules`, `afterRules`, `beforeSandbox`, `sandbox`, `afterSandbox`, `beforeOsHint`, `osHint`, `afterOsHint`, `beforeOutputFormat`, `outputFormat`, `afterOutputFormat`, `extraParameters`. |
+| `toolName`               | script language | Tool name exposed to opencode.                                                                                                                                                                                                                                                                  |
+| `os`                     | host OS         | OS name shown in the tool description. Set to `null` to omit.                                                                                                                                                                                                                                   |
+| `outputLimit.lines`      | `700`           | Maximum output lines before truncation (head/tail with full output in a file).                                                                                                                                                                                                                  |
+| `outputLimit.characters` | `40000`         | Maximum output characters before truncation (head/tail with full output in a file).                                                                                                                                                                                                             |
+| `defaultTimeoutSeconds`  | `600`           | Default execution timeout in seconds.                                                                                                                                                                                                                                                           |
+| `exitGracePeriodSeconds` | `30`            | Grace period in seconds between SIGTERM and SIGKILL on timeout.                                                                                                                                                                                                                                 |
+
+### Prompt Templates
+
+The `prompt` config controls the tool description shown to the LLM. Each sub-field is a template rendered with all other prompt fields and `extraParameters` as variables (e.g., `{{os}}`, `{{scriptLanguage}}`). Templates are recursive — a field can reference another field by name.
+
+Template resolution starts at `main` — it is the entry point and the only field that is truly required. Overriding `main` replaces the entire description; all other fields only affect parts of it.
+
+Template names: `main` (the full description body), `prelude` (inserted near the top), `rules` (injected into system rules), `sandbox` (shown when sandboxing is enabled), `osHint` (mentions the OS), `outputFormat` (describes output truncation behavior).
+
+Template "hooks" (`beforeXxx`/`afterXxx`) inject text before/after each template — e.g., `beforeSandbox`, `afterSandbox`.
+
+`extraParameters` adds extra template variables available to all templates.
+
+Special behavior: when `sandboxed` is false, the sandbox part is removed; when `os` is null, the osHint part is removed.
+
+Default templates live in [`./src/prompts/`](./src/prompts/).
+
+### Output Truncation
 
 When output exceeds either limit, the LLM never sees the full content at once. Instead it receives the head and tail of the output plus a path to a file with the complete output. This prevents token waste while still allowing the LLM to use Grep or Read tools on the full output if needed.
 
