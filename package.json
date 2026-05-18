@@ -1,11 +1,14 @@
 {
   "name": "opencode-interpreters-plugin",
-  "version": "0.1.0",
+  "version": "SET_FROM_GIT_TAG",
   "description": "Opencode plugin providing interpreters as tools",
   "type": "module",
   "exports": {
     "./server": "./dist/index.js"
   },
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "bun build src/index.ts --target bun --outfile dist/index.js",
     "typecheck": "tsc --noEmit",
@@ -38,5 +41,15 @@
     "interpreter",
     "python"
   ],
-  "license": "MIT"
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/saksmt/opencode-interpreters-plugin.git"
+  },
+  "author": {
+    "name": "Kirill Saksin",
+    "email": "smt@saksmt.dev",
+    "url": "https://saksmt.dev"
+  },
+  "readme": "./README.md"
 }
