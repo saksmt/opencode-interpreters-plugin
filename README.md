@@ -1,17 +1,29 @@
 # opencode-interpreters-plugin
 
-A plugin for [opencode](https://opencode.ai) that exposes any interpreter (anything that reads scripts from stdin) as a tool. Ships with an optional override for the default shell tool, enabling users to hook in sandboxed ([bwrap](https://github.com/containers/bubblewrap), seatbelt) and/or enriched ([nix](https://nixos.org), [direnv](https://direnv.net), devcontainers) environments without relying on tree-sitter-based shell parsing for security.
+A plugin for [opencode](https://opencode.ai) that exposes any interpreter (anything that reads scripts from stdin) as a tool. Can be used to override the default shell tool, enabling users to hook in sandboxed ([bwrap](https://github.com/containers/bubblewrap), seatbelt) and/or enriched ([nix](https://nixos.org), [direnv](https://direnv.net), devcontainers) environments without relying on tree-sitter-based shell parsing for security.
 
 ## Quick Start
 
-```jsonc
+```json5
 // opencode.jsonc
 {
   "plugin": [
     ["opencode-interpreters-plugin", {
       "interpreters": {
-        "Python": {
+        // stuff your LLM with a python... (that was too bad a joke to be left out)
+        "python": {
           "interpreter": "python3"
+        },
+        // this will override default the shell tool
+        "bash": {
+          "interpreter": "my-sandboxed-bash",
+          // enable injection of sandboxing hint
+          "sandboxed": true,
+          "prompt": {
+            // mention some available packages so that LLM is not entirely blind
+            // good candidates are: modern linux utilities (e.g. jq, rg, ...), direnv/nix, ...
+            "afterSandbox": "The following packages are available: ...."
+          }
         }
       }
     }]
@@ -35,29 +47,27 @@ Add the plugin name to your `opencode.jsonc` under the `plugin` key. To pin a ve
 
 Pinning versions is useful for security — verify a version is safe, then stay on it until you need a new feature, with no unexpected surprises from auto-updates.
 
-The plugin accepts two configuration keys:
-
-| Key                        | Description                                                                                                                                                    |
-|----------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `interpreters`             | A record of language names to interpreter configurations. Each key becomes the script language name.                                                           |
-| `overrideDefaultShellTool` | Optional configuration to replace opencode's built-in shell tool with a custom interpreter-backed one. Omits language name and tool name since they are fixed. |
+The plugin accepts an object from interpreter name to it's configuration:
 
 ### Configuration Properties
 
 | Property                 | Default         | Description                                                                                                                     |
 |--------------------------|-----------------|---------------------------------------------------------------------------------------------------------------------------------|
 | `interpreter`            | —               | Interpreter command (shebang without `#!`), e.g., `python3`, `node`, `bash`.                                                    |
+| `interpreterArgs`        | `[]`            | Additional arguments passed to the interpreter.                                                                                 |
+| `env`                    | `{}`            | Environment variables passed to the interpreter process.                                                                        |
 | `sandboxed`              | `false`         | Whether the interpreter runs inside a sandbox. See Security section.                                                            |
-| `extraDescriptions`      | `{}`            | Additional text injected into the tool description (`before`, `after`, `beforeSandbox`, `afterSandbox`, `beforeOS`, `afterOS`). |
+| `prompt`                 | `{}`            | Additional text injected into the tool description (`before`, `after`, `beforeSandbox`, `afterSandbox`, `beforeOS`, `afterOS`). |
 | `toolName`               | script language | Tool name exposed to opencode.                                                                                                  |
 | `os`                     | host OS         | OS name shown in the tool description. Set to `null` to omit.                                                                   |
 | `outputLimit.lines`      | `700`           | Maximum output lines before truncation (head/tail with full output in a file).                                                  |
 | `outputLimit.characters` | `40000`         | Maximum output characters before truncation (head/tail with full output in a file).                                             |
-| `env`                    | `{}`            | Environment variables passed to the interpreter process.                                                                        |
 | `defaultTimeoutSeconds`  | `600`           | Default execution timeout in seconds.                                                                                           |
 | `exitGracePeriodSeconds` | `30`            | Grace period in seconds between SIGTERM and SIGKILL on timeout.                                                                 |
 
 When output exceeds either limit, the LLM never sees the full content at once. Instead it receives the head and tail of the output plus a path to a file with the complete output. This prevents token waste while still allowing the LLM to use Grep or Read tools on the full output if needed.
+
+Take note to either pass `$XDG_DATA_HOME/opencode-interpreters` to the sandbox, or explicitly mention that reading full output file when output was truncated is only possible using native read/grep tools
 
 ## Example
 
@@ -66,11 +76,11 @@ When output exceeds either limit, the LLM never sees the full content at once. I
   "plugin": [
     ["opencode-interpreters-plugin", {
       "interpreters": {
-        "Python": {
+        "python": {
           "interpreter": "/opt/sandboxes/python3/bin/python3",
           "sandboxed": true,
-          "extraDescriptions": {
-            "before": "This environment has numpy and pandas pre-installed."
+          "prompt": {
+            "afterSandbox": "This environment has numpy and pandas pre-installed."
           },
           "outputLimit": {
             "lines": 1000,
@@ -78,11 +88,13 @@ When output exceeds either limit, the LLM never sees the full content at once. I
           },
           "defaultTimeoutSeconds": 300
         },
-        "Node": {
+        "node": {
           "interpreter": "node",
           "env": {
             "NODE_ENV": "development"
-          }
+          },
+          "scriptLanguage": "javascript",
+          "toolName": "nodejs"
         }
       }
     }]
@@ -101,6 +113,7 @@ The `sandboxed` property only controls the description shown to the LLM. Setting
 - Call this tool with `ln -s ~/.ssh/id_rsa ./key`
 - Call the Read tool with `"./key"`
 - Call the Write tool with the content of `"./key"` and a target `"./passing_through"`
+- Now sandboxed env has access to your ssh key
 
 This is possible when:
 - The sandbox was not manually configured to clean up leaking symlinks.
