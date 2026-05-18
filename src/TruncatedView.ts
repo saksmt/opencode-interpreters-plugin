@@ -8,6 +8,8 @@ export class TruncatedView {
   private readonly tailCharacterBudget: number;
   private readonly tailLineBudget: number;
 
+  private beforeOverflowCallback: ((contentSoFar: string[]) => void) | null = null;
+
   private headUsedCharacters = 0;
   private headUsedVisualLines = 0;
   private tailUsedCharacters = 0;
@@ -32,6 +34,10 @@ export class TruncatedView {
     this.tailCharacterBudget = Math.floor(maximumCharacters / 2);
   }
 
+  set beforeOverflow(callback: (contentSoFar: string[]) => void) {
+    this.beforeOverflowCallback = callback;
+  }
+
   feed(data: string): void {
     if (data.length === 0) {
       return;
@@ -48,12 +54,17 @@ export class TruncatedView {
     this.carryoverVisualSegmentLength = trailingSegmentLength;
     this.totalVisualLines += newVisualLines;
 
+    const overflows =
+      this.totalVisualLines > this.maximumLines || this._totalCharacters > this.maximumCharacters;
+
+    // was not truncated before and now overflows
+    if (overflows && !this._truncated) {
+      this.beforeOverflowCallback?.([...this.headChunks, ...this.tailChunks]);
+      this._truncated = true;
+    }
+
     if (this._truncated) {
       this.pushTail(data, newVisualLines);
-      this.evictTailToBudget();
-    } else if (this.totalVisualLines > this.maximumLines || this._totalCharacters > this.maximumCharacters) {
-      this.pushTail(data, newVisualLines);
-      this._truncated = true;
       this.evictTailToBudget();
     } else {
       this.fillHeadAndTail(data, newVisualLines, savedCarryover);

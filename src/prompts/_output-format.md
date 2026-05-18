@@ -1,9 +1,9 @@
 {{ beforeOutputFormat }}
 Output format:
  - execution result:
-   - exit code (0-255) wrapped in `<exit>` tag when the script finished execution normally
-   - `<exit>TIMEOUT</exit>` when execution timed out - read the results first and then decide if you need to call this tool again with greater timeout value
-   - `<exit>ABORTED</exit>` when user aborted execution
+   - exit code (0-255) wrapped in `<exit>` tag when the script finished execution normally, for example `<exit>0</exit>`
+   - `<exit>TIMEOUT</exit>` when execution timed out - read the results first and then decide if you need to call this tool again with greater timeout value, further tags will contain information at the time execution was timed out
+   - `<exit>ABORTED</exit>` when user aborted execution, further tags will contain information at the time execution was aborted
  - number of lines and characters in output as attributes to `<total />` tag, for example, `<total lines=100 characters=1000 />`
  - either:
    - output (stdout, stderr or both) wrapped in `<output>` tag

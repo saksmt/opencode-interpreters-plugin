@@ -1,4 +1,4 @@
-# opencode-shell-tool
+# opencode-interpreters-plugin
 
 ## Tech Stack
 - Runtime: Bun

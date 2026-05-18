@@ -1,7 +1,7 @@
 {
-  "name": "opencode-shell-tool",
+  "name": "opencode-interpreters-plugin",
   "version": "0.1.0",
-  "description": "Opencode plugin overriding default shell tool",
+  "description": "Opencode plugin providing interpreters as tools",
   "type": "module",
   "exports": {
     "./server": "./dist/index.js"
@@ -34,7 +34,9 @@
     "plugin",
     "shell",
     "tools",
-    "bash"
+    "bash",
+    "interpreter",
+    "python"
   ],
   "license": "MIT"
 }

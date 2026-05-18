@@ -66,11 +66,6 @@
     },
     "rules": {
       "correctness": {
-        // temporary relaxation of rules
-        "noUnusedFunctionParameters": "off",
-        "noUnusedPrivateClassMembers": "off",
-        "noUnusedVariables": "off",
-        // permanent
         "noNodejsModules": "off",
         "noUnresolvedImports": "off",
         "useQwikClasslist": "off",
@@ -80,9 +75,6 @@
         "useImportExtensions": "off"
       },
       "style": {
-        // temporary relaxation of rules
-        "useReadonlyClassProperties": "off",
-        // permanent
         "noParameterProperties": "off",
         "noInferrableTypes": "off",
         "noUselessElse": "off",
@@ -96,16 +88,11 @@
         "useExportsLast": "off"
       },
       "performance": {
-        // permanent
         "noNamespaceImport": "off",
         // very useful feature for making facades
         "noBarrelFile": "off"
       },
       "suspicious": {
-        // temporary relaxation of rules
-        "noEmptyBlockStatements": "off",
-        "useAwait": "off",
-        // permanent
         "noImportCycles": {
           "level": "error",
           "options": {
@@ -122,6 +109,12 @@
           "level": "error",
           "options": {
             "maxLines": 75
+          }
+        },
+        "useMaxParams": {
+          "level": "error",
+          "options": {
+            "max": 5
           }
         }
       },

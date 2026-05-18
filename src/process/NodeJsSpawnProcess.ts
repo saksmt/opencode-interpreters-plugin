@@ -63,14 +63,14 @@ export class NodeJsSpawnProcess implements Process {
   }
 
   static createAndStart(settings: ProcessStartupSettings): Process {
-    const onlyIfNoStdout = "stdout" in settings.handles ? "ignore" : "pipe";
+    const onlyIfNoStdout = settings.handles.includes("stdout") ? "ignore" : "pipe";
     const stdioTuple: ["ignore" | "pipe", "ignore" | "pipe", "ignore" | "pipe"] = [
       settings.stdinMode === "ignore" ? "ignore" : "pipe",
-      "stdout" in settings.handles ? "pipe" : "ignore",
-      "stderr" in settings.handles ? onlyIfNoStdout : "ignore",
+      settings.handles.includes("stdout") ? "pipe" : "ignore",
+      settings.handles.includes("stderr") ? onlyIfNoStdout : "ignore",
     ];
 
-    const capturesBoth = "stdout" in settings.handles && "stderr" in settings.handles;
+    const capturesBoth = settings.handles.includes("stdout") && settings.handles.includes("stderr");
 
     const child = spawn(settings.command, capturesBoth ? [...settings.args, "2>&1"] : settings.args, {
       stdio: stdioTuple,
@@ -91,6 +91,8 @@ export class NodeJsSpawnProcess implements Process {
 
     if (streamToRead) {
       return await this.readAll(streamToRead, readChunk);
+    } else {
+      throw new Error(`No stream available to read, process settings: ${this.settings}`);
     }
   }
 
@@ -109,7 +111,7 @@ export class NodeJsSpawnProcess implements Process {
   }
 
   stop(killWith?: NodeJS.Signals): Promise<void> {
-    if (platform() in ["linux", "android"]) {
+    if (["linux", "android"].includes(platform())) {
       if (this.child.pid) {
         // kill child ~entire family~ process group since killing parent does not kill its children
         this.killGrandChildren(killWith);
@@ -134,7 +136,7 @@ export class NodeJsSpawnProcess implements Process {
   }
 
   private killGrandChildren(signal?: NodeJS.Signals) {
-    if (platform() in ["linux", "android"] && this.child.pid) {
+    if (["linux", "android"].includes(platform()) && this.child.pid) {
       process.kill(-this.child.pid, signal);
     }
   }

@@ -9,7 +9,10 @@ export const Config = Object.assign(
       .default({}),
   }),
   {
-    async load(ctx: PluginInput, config: unknown): Promise<InterpreterDefinition[]> {
+    async load(
+      ctx: PluginInput,
+      config: unknown,
+    ): Promise<(InterpreterDefinition & { configKey: string })[]> {
       const configValidationResult = Config.safeParse(config);
       if (!configValidationResult.success) {
         await ctx.client.tui.showToast({
@@ -31,10 +34,12 @@ export const Config = Object.assign(
         return [];
       }
       const validatedConfig = configValidationResult.data;
-      return Object.entries(validatedConfig.interpreters).map(([name, interpreterConf]) => {
-        interpreterConf.scriptLanguage = interpreterConf.scriptLanguage ?? name;
-        return interpreterConf as InterpreterDefinition;
-      });
+      return Object.entries(validatedConfig.interpreters).map(([name, interpreterConf]) =>
+        Object.assign(interpreterConf, {
+          configKey: name,
+          scriptLanguage: interpreterConf.scriptLanguage ?? name,
+        }),
+      );
     },
   },
 );

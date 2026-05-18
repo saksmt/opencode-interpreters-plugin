@@ -32,6 +32,7 @@ export function todo(text: string = "This function is not implemented yet"): nev
 }
 
 export function notFulfilled(): Promise<never> {
+  // biome-ignore lint/suspicious/noEmptyBlockStatements: that's the idea
   return new Promise<never>(() => {});
 }
 
@@ -41,6 +42,10 @@ export function fireAndForget(task: () => Promise<void>): void {
     await task();
   }
   const _ = run();
+}
+
+export function exhaustive(_: never): never {
+  throw new Error("This should never happen");
 }
 
 export const voidPromise = Promise.resolve<void>(undefined);

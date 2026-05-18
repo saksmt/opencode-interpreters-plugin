@@ -1,3 +1,4 @@
+import process from "node:process";
 import type { InterpreterDefinition } from "./InterpreterDefinition";
 import * as defaultPluginPrompts from "./prompts";
 import { Template } from "./Template";
@@ -15,6 +16,22 @@ export interface RendererParameters {
   scriptLanguage: string;
 }
 
+function titleCase(str: string): string {
+  return str.slice(0, 1).toUpperCase() + str.slice(1);
+}
+
+export const DEFAULT_PROMPTS = {
+  ...defaultPluginPrompts,
+  ...Object.fromEntries([
+    ...Object.keys(defaultPluginPrompts)
+      .map(titleCase)
+      .flatMap((it) => [`before${it}`, `after${it}`])
+      .map((it) => [it, ""]),
+    ["before", ""],
+    ["after", ""],
+  ]),
+};
+
 export class DescriptionRenderer {
   private readonly extraParameters: Record<string, string>;
   private readonly prompts: Prompts;
@@ -24,7 +41,7 @@ export class DescriptionRenderer {
   constructor(
     configuredPrompts: InterpreterDefinition["prompt"],
     private readonly parameters: RendererParameters,
-    defaultPrompts = defaultPluginPrompts,
+    defaultPrompts = DEFAULT_PROMPTS,
   ) {
     this.extraParameters = configuredPrompts?.extraParameters ?? {};
     const configuredWithoutExtra: Prompts & { extraParameters?: Record<string, string> } = {
@@ -37,6 +54,18 @@ export class DescriptionRenderer {
       ...(configuredWithoutExtra as Prompts),
       ...(configuredPrompts?.extraParameters ?? {}),
     };
+  }
+
+  static default(interpreter: InterpreterDefinition): DescriptionRenderer {
+    return new DescriptionRenderer(interpreter.prompt, {
+      sandboxed: interpreter.sandboxed,
+      scriptLanguage: interpreter.scriptLanguage,
+      os: "os" in interpreter && interpreter.os !== undefined ? interpreter.os : process.platform,
+      maxLines: interpreter.outputLimit.lines,
+      maxCharacters: interpreter.outputLimit.characters,
+      defaultTimeoutSeconds: interpreter.defaultTimeoutSeconds,
+      exitGracePeriodSeconds: interpreter.exitGracePeriodSeconds,
+    });
   }
 
   get description(): string {

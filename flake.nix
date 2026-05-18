@@ -1,5 +1,5 @@
 {
-  description = "opencode-shell-tool dev shell";
+  description = "opencode-interpreters-plugin dev shell";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";

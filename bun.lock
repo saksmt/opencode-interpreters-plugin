@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "opencode-shell-tool",
+      "name": "opencode-interpreters-plugin",
       "dependencies": {
         "@opencode-ai/plugin": "^1.14.0",
         "@opencode-ai/sdk": "^1.15.1",

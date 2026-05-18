@@ -1,0 +1,3 @@
+[loader]
+# it is insane, but without this, even with `with { type: "text" }` bun PARSES markdown AND CONVERTS TO HTML
+".md" = "text"
