@@ -1,7 +1,15 @@
 import type { PluginInput } from "@opencode-ai/plugin";
 import { voidPromise } from "@/utils.ts";
 
-export class Logger {
+export interface Logger {
+  debug(message: string, ctx?: Record<string, unknown>): Promise<void>;
+  info(message: string, ctx?: Record<string, unknown>): Promise<void>;
+  warn(message: string, ctx?: Record<string, unknown>): Promise<void>;
+  error(message: string, ctx?: Record<string, unknown>): Promise<void>;
+  childLogger(name: string): Logger;
+}
+
+class PluginLogger implements Logger {
   constructor(
     private readonly ctx: PluginInput,
     private readonly service: string,
@@ -59,7 +67,45 @@ export class Logger {
       .then(() => voidPromise);
   }
 
-  childLogger(name: string) {
-    return new Logger(this.ctx, `${this.service}.${name}`);
+  childLogger(name: string): Logger {
+    return new PluginLogger(this.ctx, `${this.service}.${name}`);
   }
 }
+
+export class ConsoleLogger implements Logger {
+  constructor(private readonly service: string) {}
+
+  debug(message: string, ctx: Record<string, unknown> = {}): Promise<void> {
+    // biome-ignore lint/suspicious/noConsole: Console-based logger for test use
+    console.debug(`[${this.service}]`, message, ctx);
+    return voidPromise;
+  }
+
+  info(message: string, ctx: Record<string, unknown> = {}): Promise<void> {
+    // biome-ignore lint/suspicious/noConsole: Console-based logger for test use
+    console.info(`[${this.service}]`, message, ctx);
+    return voidPromise;
+  }
+
+  warn(message: string, ctx: Record<string, unknown> = {}): Promise<void> {
+    // biome-ignore lint/suspicious/noConsole: Console-based logger for test use
+    console.warn(`[${this.service}]`, message, ctx);
+    return voidPromise;
+  }
+
+  error(message: string, ctx: Record<string, unknown> = {}): Promise<void> {
+    // biome-ignore lint/suspicious/noConsole: Console-based logger for test use
+    console.error(`[${this.service}]`, message, ctx);
+    return voidPromise;
+  }
+
+  childLogger(name: string): Logger {
+    return new ConsoleLogger(`${this.service}.${name}`);
+  }
+}
+
+export const Logger = {
+  forPluginContext(ctx: PluginInput, service: string): Logger {
+    return new PluginLogger(ctx, service);
+  },
+};

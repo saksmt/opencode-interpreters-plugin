@@ -259,7 +259,7 @@ export class InterpreterToolExecutor {
 
     const head = output.view.renderedHead;
     const tail = output.view.renderedTail;
-    await promisify(file.stream.close)();
+    await promisify(file.stream.close.bind(file.stream))();
     return {
       truncated: true,
       outputPath: file.path,

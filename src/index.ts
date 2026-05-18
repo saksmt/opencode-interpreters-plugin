@@ -7,7 +7,7 @@ import { Config } from "./Config";
 
 const OpencodeShellToolPlugin: Plugin = async (ctx: PluginInput, config?: Record<string, unknown>) => {
   let hooks: Hooks = {};
-  const logger = new Logger(ctx, "opencode-interpreters-plugin");
+  const logger = Logger.forPluginContext(ctx, "opencode-interpreters-plugin");
 
   await logger.info("Initializing");
 
