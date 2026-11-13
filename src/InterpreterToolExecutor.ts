@@ -96,6 +96,12 @@ export class InterpreterToolExecutor {
       metadata: {
         output: "",
         description,
+        title: description,
+        original: {
+          output: "",
+          description,
+          title: description,
+        },
       },
     });
 
@@ -165,16 +171,22 @@ export class InterpreterToolExecutor {
 
       await this.logger.info("Got output chunk", { data });
 
+      const meta = {
+        output: output.view.render(() =>
+          [
+            `... omitted ${output.view.truncatedCharacters} characters`,
+            `across ${output.view.truncatedLines} lines ...`,
+          ].join("\n"),
+        ),
+        description,
+        title: description,
+      } satisfies ShellToolInProgressMetadata;
       await context.metadata({
+        title: description,
         metadata: {
-          output: output.view.render(() =>
-            [
-              `... omitted ${output.view.truncatedCharacters} characters`,
-              `across ${output.view.truncatedLines} lines ...`,
-            ].join("\n"),
-          ),
-          description,
-        } satisfies ShellToolInProgressMetadata,
+          ...meta,
+          original: meta,
+        },
       });
 
       if (firstOverflow !== null) {
@@ -235,6 +247,7 @@ export class InterpreterToolExecutor {
       totalLines: output.view.totalLines,
       totalCharacters: output.view.totalCharacters,
       description,
+      title: description,
     };
 
     return {

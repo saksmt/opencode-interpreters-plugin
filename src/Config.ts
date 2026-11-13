@@ -1,5 +1,6 @@
-import type { PluginInput } from "@opencode-ai/plugin";
 import * as zod from "zod";
+import type { Logger } from "@/Logger.ts";
+import type { ToastOptions } from "@/opencode-types.ts";
 import { InterpreterDefinition } from "./InterpreterDefinition";
 
 export const Config = Object.assign(
@@ -10,12 +11,18 @@ export const Config = Object.assign(
   }),
   {
     async load(
-      ctx: PluginInput,
       config: unknown,
-    ): Promise<(InterpreterDefinition & { configKey: string })[]> {
-      const configValidationResult = Config.safeParse(config);
+      logger: Logger,
+      showToast: (opts: ToastOptions) => void,
+    ): Promise<false | (InterpreterDefinition & { configKey: string })[]> {
+      const configValidationResult = Config.strict().safeParse(config);
+      await logger.debug(`Config validation result: ${JSON.stringify(configValidationResult)}`);
       if (!configValidationResult.success) {
-        await ctx.client.tui.showToast({
+        await logger.error(
+          "Failed to load configuration for opencode-interpreters-plugin",
+          zod.treeifyError(configValidationResult.error),
+        );
+        showToast({
           body: {
             title: "opencode-interpreters-plugin failed to load",
             // biome-ignore lint/style/useTemplate: this is more readable here
@@ -23,15 +30,7 @@ export const Config = Object.assign(
             variant: "error",
           },
         });
-        await ctx.client.app.log({
-          body: {
-            service: "opencode-interpreters-plugin",
-            message: "Failed to load configuration",
-            level: "error",
-            extra: zod.treeifyError(configValidationResult.error),
-          },
-        });
-        return [];
+        return false;
       }
       const validatedConfig = configValidationResult.data;
       return Object.entries(validatedConfig.interpreters).map(([name, interpreterConf]) =>

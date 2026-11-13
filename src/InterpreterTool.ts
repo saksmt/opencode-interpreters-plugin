@@ -82,6 +82,35 @@ export class InterpreterTool {
     });
   }
 
+  get toolExecuteBeforeHook(): Required<Hooks>["tool.execute.before"] {
+    return (input: { tool: string }, output: { args: unknown }) => {
+      if (input.tool !== this.toolName) {
+        return voidPromise;
+      }
+
+      // copy "script" to "command" argument for tui
+      if (typeof output.args === "object" && output.args !== null) {
+        const args = output.args as Record<string, unknown>;
+
+        if (
+          args.command !== undefined &&
+          args.script !== undefined &&
+          args.command !== null &&
+          args.script !== null
+        ) {
+          // model gone insane
+          return voidPromise;
+        }
+
+        const actualScript = args.command ?? args.script;
+        args.command = actualScript;
+        args.script = actualScript;
+      }
+
+      return voidPromise;
+    };
+  }
+
   get toolExecuteAfterHook(): Required<Hooks>["tool.execute.after"] {
     return (
       input: {
@@ -141,6 +170,16 @@ export class InterpreterTool {
       };
     } else {
       pluginHooks["tool.execute.after"] = this.toolExecuteAfterHook;
+    }
+
+    if ("tool.execute.before" in pluginHooks && pluginHooks["tool.execute.before"] !== undefined) {
+      const previous = pluginHooks["tool.execute.before"];
+      pluginHooks["tool.execute.before"] = async (input, output) => {
+        await previous(input, output);
+        await this.toolExecuteBeforeHook(input, output);
+      };
+    } else {
+      pluginHooks["tool.execute.before"] = this.toolExecuteBeforeHook;
     }
     return pluginHooks;
   }

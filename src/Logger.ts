@@ -26,7 +26,7 @@ class PluginLogger implements Logger {
         body: {
           message,
           level: "debug",
-          extra: ctx,
+          extra: { plugin: this.service, ...ctx },
           service: this.service,
         },
       })
@@ -39,7 +39,7 @@ class PluginLogger implements Logger {
         body: {
           message,
           level: "info",
-          extra: ctx,
+          extra: { plugin: this.service, ...ctx },
           service: this.service,
         },
       })
@@ -52,7 +52,7 @@ class PluginLogger implements Logger {
         body: {
           message,
           level: "warn",
-          extra: ctx,
+          extra: { plugin: this.service, ...ctx },
           service: this.service,
         },
       })
@@ -65,7 +65,7 @@ class PluginLogger implements Logger {
         body: {
           message,
           level: "error",
-          extra: ctx,
+          extra: { plugin: this.service, ...ctx },
           service: this.service,
         },
       })
